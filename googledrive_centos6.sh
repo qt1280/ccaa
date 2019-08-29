@@ -8,7 +8,9 @@ rclone config
 cd /etc/ccaa
 wget  https://raw.githubusercontent.com/qt1280/ccaa/master/rcloneupload.sh
 chmod +x rcloneupload.sh
-echo "on-download-complete=/etc/ccaa/rcloneupload.sh"
+echo "on-download-complete=/etc/ccaa/rcloneupload.sh" >> /etc/ccaa/aria2.conf
 chmod +x /etc/rc.d/rc.local
 echo "/usr/sbin/ccaa start" >> /etc/rc.d/rc.local
-
+/usr/sbin/ccaa restart
+ echo "* 2 * * 7 /etc/ccaa/upbt.sh > /dev/null" >> /etc/crontab
+ service crond reload
