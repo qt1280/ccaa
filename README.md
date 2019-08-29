@@ -1,5 +1,7 @@
-自用自动挂机gooogle drive(只适合 centos6)
-  wget https://raw.githubusercontent.com/qt1280/ccaa/master/googledrive_centos6.sh && bash googledrive_centos6.sh
+自用自动挂机gooogle drive(只适合 centos6) 
+
+
+wget https://raw.githubusercontent.com/qt1280/ccaa/master/googledrive_centos6.sh && bash googledrive_centos6.sh
 
 # CCAA
 
