@@ -1,3 +1,6 @@
+自用自动挂机gooogle drive(只适合 centos6)
+wget https://raw.githubusercontent.com/qt1280/ccaa/master/googledrive_centos6.sh && bash googledrive_centos6.sh
+
 # CCAA
 
 Linux + Caddy + Aria2 + AriaNg，实现离线下载、文件管理、在线播放等功能。
@@ -33,6 +36,3 @@ Linux + Caddy + Aria2 + AriaNg，实现离线下载、文件管理、在线播�
 * QQ: 337003006
 * 技术交流群: 147687134
 
-### 请我喝一杯咖啡
-
-![](https://imgurl.org/upload/1712/cb349aa4a1b95997.png)
