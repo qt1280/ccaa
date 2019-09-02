@@ -1,29 +1,55 @@
 #!/bin/bash
 
-filepath=$3	 #取文件原始路径，如果是单文件则为/Download/a.mp4，如果是文件夹则该值为文件夹内第一个文件比如/Download/a/1.mp4
-path=${3%/*}	 #取文件根路径，如把/Download/a/1.mp4变成/Download/a
-downloadpath='/data/ccaaDown/'	#Aria2下载目录
-name='joe1280' #配置Rclone时的name
-folder='/alishare'	 #网盘里的文件夹，如果是根目录直接留空
-MinSize='10k'	 #限制最低上传大小，默认10k，BT下载时可防止上传其他无用文件。会删除文件，谨慎设置。
-MaxSize='50G'	 #限制最高文件大小，默认15G，OneDrive上传限制。
+GID="$1";
+FileNum="$2";
+File="$3";
+MinSize="5"  #限制最低上传大小，默认5k
+MaxSize="157286400"  #限制最高文件大小(单位k)，默认15G
+RemoteDIR="/data/GoogleDrive/";  #rclone挂载的本地文件夹，最后面保留/
+LocalDIR="/data/Download/";  #Aria2下载目录，最后面保留/
 
-if [ $2 -eq 0 ]; then exit 0; fi
+if [[ -z $(echo "$FileNum" |grep -o '[0-9]*' |head -n1) ]]; then FileNum='0'; fi
+if [[ "$FileNum" -le '0' ]]; then exit 0; fi
+if [[ "$#" != '3' ]]; then exit 0; fi
 
-while true; do
-if [ "$path" = "$downloadpath" ] && [ $2 -eq 1 ]	#如果下载的是单个文件
-    then
-    rclone move -v "$filepath" ${name}:${folder} --min-size $MinSize --max-size $MaxSize
-    rm -vf "$filepath".aria2	#删除残留的.aria.2文件
-    exit 0
-elif [ "$path" != "$downloadpath" ]	#如果下载的是文件夹
-    then
-    while [[ "`ls -A "$path/"`" != "" ]]; do
-    rclone move -v "$path" ${name}:/${folder}/"${path##*/}" --min-size $MinSize --max-size $MaxSize --delete-empty-src-dirs
-    rclone delete -v "$path" --max-size $MinSize	#删除多余的文件
-    rclone rmdirs -v "$downloadpath" --leave-root	#删除空目录，--delete-empty-src-dirs 参数已实现，加上无所谓。
-    done
-    rm -vf "$path".aria2	#删除残留的.aria2文件
-    exit 0
-fi
-done
+function LoadFile(){
+  IFS_BAK=$IFS
+  IFS=$'\n'
+  if [[ ! -d "$LocalDIR" ]]; then return; fi
+  if [[ -e "$File" ]]; then
+    FileLoad="${File/#$LocalDIR}"
+    while true
+      do
+        if [[ "$FileLoad" == '/' ]]; then return; fi
+        echo "$FileLoad" |grep -q '/';
+        if [[ "$?" == "0" ]]; then
+          FileLoad=$(dirname "$FileLoad");
+        else
+          break;
+        fi;
+      done;
+    if [[ "$FileLoad" == "$LocalDIR" ]]; then return; fi
+    EXEC="$(command -v mv)"
+    if [[ -z "$EXEC" ]]; then return; fi
+    Option=" -f";
+    cd "$LocalDIR";
+    if [[ -e "$FileLoad" ]]; then
+      ItemSize=$(du -s "$FileLoad" |cut -f1 |grep -o '[0-9]*' |head -n1)
+      if [[ -z "$ItemSize" ]]; then return; fi
+      if [[ "$ItemSize" -le "$MinSize" ]]; then
+        echo -ne "\033[33m$FileLoad \033[0mtoo small to spik.\n";
+        return;
+      fi
+      if [[ "$ItemSize" -ge "$MaxSize" ]]; then
+        echo -ne "\033[33m$FileLoad \033[0mtoo large to spik.\n";
+        return;
+      fi
+      eval "${EXEC}${Option}" \'"${FileLoad}"\' "${RemoteDIR}";
+      if [[ $? == '0' ]]; then
+        rm -rf "$FileLoad";
+      fi
+    fi
+  fi
+  IFS=$IFS_BAK
+}
+LoadFile;
