@@ -6,7 +6,7 @@ File="$3";
 MinSize="5"  #限制最低上传大小，默认5k
 MaxSize="157286400"  #限制最高文件大小(单位k)，默认15G
 RemoteDIR="/data/GoogleDrive/";  #rclone挂载的本地文件夹，最后面保留/
-LocalDIR="/data/Download/";  #Aria2下载目录，最后面保留/
+LocalDIR="/usr/local/caddy/www/aria2/Download";  #Aria2下载目录，最后面保留/
 
 if [[ -z $(echo "$FileNum" |grep -o '[0-9]*' |head -n1) ]]; then FileNum='0'; fi
 if [[ "$FileNum" -le '0' ]]; then exit 0; fi
