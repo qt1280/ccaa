@@ -1,68 +1,55 @@
 #!/bin/bash
-yum -y update
-yum -y install epel-release
-yum -y install wget git unzip gcc gcc-c++ openssl-devel nginx
 
-systemctl start nginx
-systemctl enable nginx.service
-systemctl stop firewalld # 关闭防火墙
+GID="$1";
+FileNum="$2";
+File="$3";
+MinSize="5"  #限制最低上传大小，默认5k
+MaxSize="157286400"  #限制最高文件大小(单位k)，默认15G
+RemoteDIR="/alishare";  #rclone挂载的本地文件夹，最后面保留/
+LocalDIR="/data/GoogleDrive";  #Aria2下载目录，最后面保留/
 
-wget -N --no-check-certificate https://raw.githubusercontent.com/ToyoDAdoubi/doubi/master/aria2.sh && chmod +x aria2.sh && bash aria2.sh
+if [[ -z $(echo "$FileNum" |grep -o '[0-9]*' |head -n1) ]]; then FileNum='0'; fi
+if [[ "$FileNum" -le '0' ]]; then exit 0; fi
+if [[ "$#" != '3' ]]; then exit 0; fi
 
-mkdir -p /data/Download
-
-
-mkdir -p /data/www/ariang
-cd /data/www/ariang
-wget https://github.com/mayswind/AriaNg-DailyBuild/archive/master.zip && unzip master.zip
-mv AriaNg-DailyBuild-master/* .
-rm -rf master.zip AriaNg-DailyBuild-master
-
-cd /etc/nginx/conf.d
-touch ariang.conf
-
-myip=`wget http://ipecho.net/plain -O - -q echo`
-
-echo "server {
-    listen 80;
-    $myip;
-
-    location / {
-        root   /data/www/ariang;
-        index  index.html index.htm;
-    }
-}"
-
-
-
-yum -y install unzip fuse
-
-
-curl https://rclone.org/install.sh | sudo bash
-
-mkdir -p /data/GoogleDrive
-
-rclone mount joe1280:alishare /data/GoogleDrive --allow-other --allow-non-empty --vfs-cache-mode writes &
-
-df -h
-
-
-wget https://raw.githubusercontent.com/qt1280/ccaa/master/rcloned
-
-mv rcloned /etc/init.d/rcloned
-chmod +x /etc/init.d/rcloned
-echo "/etc/init.d/rcloned start" >> /etc/rc.d/rc.local
-chmod +x /etc/rc.d/rc.local
-
-bash /etc/init.d/rcloned status
-
-cd /root/
-
-wget https://raw.githubusercontent.com/qt1280/ccaa/master/rcloneupload.sh
-
-chmod +x /root/rcloneupload.sh
-
-echo "on-download-complete=/root/rcloneupload.sh"  >> /root/.aria2/aria2.conf
-
-cd /data/GoogleDrive
-touch codesofun.txt
+function LoadFile(){
+  IFS_BAK=$IFS
+  IFS=$'\n'
+  if [[ ! -d "$LocalDIR" ]]; then return; fi
+  if [[ -e "$File" ]]; then
+    FileLoad="${File/#$LocalDIR}"
+    while true
+      do
+        if [[ "$FileLoad" == '/' ]]; then return; fi
+        echo "$FileLoad" |grep -q '/';
+        if [[ "$?" == "0" ]]; then
+          FileLoad=$(dirname "$FileLoad");
+        else
+          break;
+        fi;
+      done;
+    if [[ "$FileLoad" == "$LocalDIR" ]]; then return; fi
+    EXEC="$(command -v mv)"
+    if [[ -z "$EXEC" ]]; then return; fi
+    Option=" -f";
+    cd "$LocalDIR";
+    if [[ -e "$FileLoad" ]]; then
+      ItemSize=$(du -s "$FileLoad" |cut -f1 |grep -o '[0-9]*' |head -n1)
+      if [[ -z "$ItemSize" ]]; then return; fi
+      if [[ "$ItemSize" -le "$MinSize" ]]; then
+        echo -ne "\033[33m$FileLoad \033[0mtoo small to spik.\n";
+        return;
+      fi
+      if [[ "$ItemSize" -ge "$MaxSize" ]]; then
+        echo -ne "\033[33m$FileLoad \033[0mtoo large to spik.\n";
+        return;
+      fi
+      eval "${EXEC}${Option}" \'"${FileLoad}"\' "${RemoteDIR}";
+      if [[ $? == '0' ]]; then
+        rm -rf "$FileLoad";
+      fi
+    fi
+  fi
+  IFS=$IFS_BAK
+}
+LoadFile;
